@@ -1,6 +1,6 @@
 """
 Patch for sssp_concept.py to add infinite loop protection
-Apply by running: python scripts/apply_safety_patch.py
+Apply by running: python apply_safety_patch.py
 """
 
 # Read the file
@@ -40,7 +40,7 @@ new_1 = """    # Accumulates all complete vertices found within this `BMSSP` cal
             _instr(f"[BMSSP] level={l} BREAK: max_iterations={max_iterations} reached")
             break"""
 
-# Patch 2: Add stall detection (original buggy reference removed in our final patch)
+# Patch 2: Add stall detection
 old_2 = """        # Step 3: `Pull` a subset `Si` of `M_param` smallest-distance vertices from `D`,
         # and obtain `Bi`, which is an upper bound for `Si` and a lower bound for the rest of `D`.
         Bi, Si = D.Pull()
@@ -52,6 +52,15 @@ new_2 = """        # Step 3: `Pull` a subset `Si` of `M_param` smallest-distance
         # and obtain `Bi`, which is an upper bound for `Si` and a lower bound for the rest of `D`.
         Bi, Si = D.Pull()
         _instr(f"[BMSSP] level={l} iter={iteration_count} Pulled Bi={Bi} Si_count={len(Si)} M_param={M_param}")
+        
+        # Safety: detect if Bi is not advancing (infinite loop symptom)
+        if last_Bi is not None and abs(Bi - last_Bi) < 1e-12 and len(Si) == len(batch_items_to_add if 'batch_items_to_add' in dir() else []):
+            stall_count += 1
+            if stall_count > 10:
+                _instr(f"[BMSSP] level={l} BREAK: Bi stalled at {Bi} for {stall_count} iterations")
+                break
+        else:
+            stall_count = 0
         last_Bi = Bi
 
         # Heuristic adjustment for tiny Bi values"""
@@ -64,11 +73,12 @@ else:
 
 if old_2 in content:
     content = content.replace(old_2, new_2)
-    print("✓ Applied Patch 2: Stall detection (simplified)")
+    print("✓ Applied Patch 2: Stall detection")
 else:
     print("✗ Patch 2 already applied or code structure changed")
 
+# Write back
 with open('sssp_concept.py', 'w', encoding='utf-8') as f:
     f.write(content)
 
-print("\nPatches applied! Test with: python scripts/test_diagnostic.py")
+print("\nPatches applied! Test with: python test_diagnostic.py")

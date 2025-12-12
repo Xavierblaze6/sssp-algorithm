@@ -2,10 +2,6 @@ print('=' * 60)
 print('FINAL VERIFICATION')
 print('=' * 60)
 
-import os
-import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 import sssp_concept
 from graph_generator import generate_random_graph
 
